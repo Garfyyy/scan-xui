@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/url"
 	"os"
@@ -13,6 +14,19 @@ import (
 )
 
 func main() {
+	f := flag.String("f", "", "file path")
+	flag.Parse()
+
+	if *f != "" {
+		content, err := os.ReadFile(*f)
+		if err != nil {
+			panic(err)
+		}
+		links := strings.Split(string(content), "\n")
+		RunScanXui(links, "custom")
+		return
+	}
+
 	err := godotenv.Load()
 	if err != nil {
 		panic(err)
@@ -26,12 +40,13 @@ func main() {
 
 	for _, fid := range fids {
 		for _, country := range countrys {
-			RunScanXui(fid, country, fc)
+			links := GetLinksByFofa(fid, country, fc)
+			RunScanXui(links, country)
 		}
 	}
 }
 
-func RunScanXui(fid, country string, fc *fofa.Client) {
+func GetLinksByFofa(fid, country string, fc *fofa.Client) []string {
 	fofaQuery := &fofa.SearchParams{
 		Query:  fmt.Sprintf(`title=="登录" && fid="%s" && country="%s"`, fid, country),
 		Size:   10000,
@@ -54,11 +69,14 @@ func RunScanXui(fid, country string, fc *fofa.Client) {
 			links = append(links, res[len(res)-1])
 		}
 	}
+	return links
+}
 
+func RunScanXui(links []string, country string) {
 	res := task.ScanLinks(links)
 
 	if len(res) > 0 {
-		saveFile := fmt.Sprintf("result_%s.txt", country)
+		saveFile := fmt.Sprintf("result/%s.txt", country)
 
 		ipMap := make(map[string]bool)
 		var uniqueRes []string
@@ -78,7 +96,7 @@ func RunScanXui(fid, country string, fc *fofa.Client) {
 		if err := utils.Write2File(saveFile, uniqueRes); err != nil {
 			panic(err)
 		} else {
-			fmt.Printf("Write to file %s success\n", saveFile)
+			fmt.Printf("Write to file %s success, len: \033[32m%d\033[0m\n", saveFile, len(uniqueRes))
 		}
 	}
 }
