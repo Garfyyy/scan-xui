@@ -12,7 +12,7 @@ import (
 
 const (
 	maxRoutine      = 256
-	DefaultRoutines = 128
+	DefaultRoutines = 64
 )
 
 // {'success': True, 'msg': '登录成功', 'obj': None}

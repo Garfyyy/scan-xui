@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -58,7 +59,23 @@ func RunScanXui(fid, country string, fc *fofa.Client) {
 
 	if len(res) > 0 {
 		saveFile := fmt.Sprintf("result_%s.txt", country)
-		if err := utils.Write2File(saveFile, res); err != nil {
+
+		ipMap := make(map[string]bool)
+		var uniqueRes []string
+
+		for _, link := range res {
+			u, err := url.Parse(link)
+			if err != nil {
+				continue
+			}
+			ip := u.Hostname()
+			if !ipMap[ip] {
+				ipMap[ip] = true
+				uniqueRes = append(uniqueRes, link)
+			}
+		}
+
+		if err := utils.Write2File(saveFile, uniqueRes); err != nil {
 			panic(err)
 		} else {
 			fmt.Printf("Write to file %s success\n", saveFile)
